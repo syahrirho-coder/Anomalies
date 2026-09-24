@@ -1,0 +1,8 @@
+{
+  "name": "ponsi-terminal",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "gmgn-cli": "^1.2.9"
+  }
+}
