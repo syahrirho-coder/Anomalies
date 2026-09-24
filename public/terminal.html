@@ -1,1 +1,582 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PONSI TERMINAL</title>
+<style>
+  :root{
+    --bg:#05070a; --panel:#0b0f14; --border:#1c2530; --green:#2ee6a6; --green-dim:#1b6b53;
+    --red:#ff4d6d; --text:#d7e0e8; --muted:#6b7684; --mono: 'JetBrains Mono','SF Mono',Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--mono);
+    padding:10px; padding-top:calc(10px + env(safe-area-inset-top,0px));
+    padding-bottom:calc(70px + env(safe-area-inset-bottom,0px));
+    background-image:
+      radial-gradient(ellipse 600px 300px at 20% 0%, rgba(46,230,166,0.08), transparent 60%),
+      radial-gradient(ellipse 500px 260px at 85% 15%, rgba(46,230,166,0.05), transparent 60%);
+    background-attachment:fixed;
+  }
+  .topbar{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .logo{font-weight:700; letter-spacing:1px; color:var(--green);}
+  .logo span{color:var(--text);}
+  .live{font-size:11px; color:var(--green); border:1px solid var(--green-dim); padding:3px 8px; border-radius:4px;}
+  .live::before{content:"● "; }
+  .chainrow{display:flex; gap:6px; margin-bottom:10px;}
+  .chip{background:var(--panel); border:1px solid var(--border); color:var(--muted); font-size:11px; padding:6px 10px; border-radius:6px; cursor:pointer;}
+  .chip.active{color:var(--green); border-color:var(--green-dim); background:#0d1a15;}
+  .panel{background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:12px;}
+  .panel h3{margin:0 0 10px; font-size:12px; color:var(--green); text-transform:uppercase; letter-spacing:1px;}
+  .panel h3 .muted{color:var(--muted); text-transform:none; font-size:10px; margin-left:6px;}
+  table{width:100%; border-collapse:collapse; font-size:12px;}
+  th{text-align:left; color:var(--muted); font-weight:400; font-size:10px; padding:4px 6px; border-bottom:1px solid var(--border);}
+  td{padding:6px; border-bottom:1px solid #10151b;}
+  tr:last-child td{border-bottom:none;}
+  .up{color:var(--green);} .down{color:var(--red);}
+  .badge{font-size:10px; padding:2px 6px; border-radius:4px; font-weight:700;}
+  .badge.buy{background:#0d2f24; color:var(--green);}
+  .badge.sell{background:#331420; color:var(--red);}
+  .badge.long{background:#0d2f24; color:var(--green);}
+  .badge.short{background:#331420; color:var(--red);}
+  .scorebar{display:inline-block; width:36px; height:5px; background:#1c2530; border-radius:3px; overflow:hidden; vertical-align:middle; margin-right:6px;}
+  .scorebar div{height:100%; background:var(--green);}
+  .card-reason{font-size:10.5px; color:var(--muted); margin-top:2px;}
+  .link{color:var(--green); text-decoration:none; font-size:11px;}
+  .tabs{position:fixed; bottom:0; left:0; right:0; background:var(--panel); border-top:1px solid var(--border);
+    display:flex; padding-bottom:env(safe-area-inset-bottom,0px);}
+  .tab{flex:1; text-align:center; padding:10px 4px; font-size:10px; color:var(--muted); cursor:pointer;}
+  .tab.active{color:var(--green);}
+  .tab .ico{font-size:16px; display:block;}
+  .view{display:none;}
+  .view.active{display:block;}
+  .empty{color:var(--muted); font-size:12px; text-align:center; padding:20px 0;}
+  .note{font-size:10px; color:var(--muted); margin-top:6px; font-style:italic;}
+  .tok{display:flex; align-items:center; gap:6px;}
+  .tok img, .tok .fallback{width:18px; height:18px; border-radius:50%; object-fit:cover; background:#1c2530;}
+  .tok .fallback{color:var(--green); font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center;}
+  .tok span{font-weight:700; font-size:12px; color:var(--text);}
+  select, button.go{background:var(--panel); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:9px 10px; font-family:var(--mono); font-size:12px;}
+  .fxrow{display:flex; gap:6px; margin-bottom:10px;}
+  .fxrow select{flex:1;}
+  button.go{background:#0d2f24; color:var(--green); border-color:var(--green-dim); width:100%; font-weight:700; cursor:pointer;}
+  .fxcard{border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px;}
+  .fxcard .style{font-size:10px; color:var(--muted); text-transform:uppercase;}
+  .fxcard .bias{font-size:16px; font-weight:700;}
+  .fxgrid{display:grid; grid-template-columns:1fr 1fr; gap:4px; font-size:11px; margin-top:6px;}
+  .fxgrid span{color:var(--muted); font-size:9px; display:block;}
+  .fxnarr{font-size:11px; color:var(--muted); margin-top:6px; line-height:1.4;}
+  .subtabs{display:flex; gap:16px; margin-bottom:10px; padding:0 4px;}
+  .subtab{font-size:12px; color:var(--muted); cursor:pointer; padding-bottom:4px;}
+  .subtab.active{color:var(--green); border-bottom:2px solid var(--green);}
+  .guide-btn{background:none; border:1px solid var(--green-dim); color:var(--green); font-size:10px; padding:4px 10px; border-radius:6px; cursor:pointer;}
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:50; align-items:flex-end;}
+  .modal-overlay.active{display:flex;}
+  .modal{background:var(--panel); border:1px solid var(--border); border-radius:12px 12px 0 0; padding:16px; width:100%; max-height:75vh; overflow-y:auto;}
+  .guide-item{font-size:12px; line-height:1.5; margin-bottom:10px; color:var(--text);}
+  .guide-item b{color:var(--green);}
+  .fscard{border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:10px; background:linear-gradient(180deg,#0d1119,#0a0e13); position:relative; overflow:hidden;}
+  .fscard::before{content:''; position:absolute; left:0; top:0; bottom:0; width:3px;}
+  .fscard.acc::before{background:var(--green);}
+  .fscard.long::before{background:var(--green);}
+  .fscard.short::before{background:var(--red);}
+  .fscard-top{display:flex; justify-content:space-between; align-items:flex-start;}
+  .tok.lg img, .tok.lg .fallback{width:32px; height:32px; font-size:13px;}
+  .tok.lg{gap:10px;}
+  .fscard-name{font-size:14px; font-weight:700;}
+  .fscard-sub{font-size:10px; color:var(--muted);}
+  .fscard-price{font-size:11px; color:var(--text); margin-top:4px; text-align:right;}
+  .ring{width:42px; height:42px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+  .ring.green{background:conic-gradient(var(--green) calc(var(--pct)*3.6deg), #1c2530 0deg);}
+  .ring.red{background:conic-gradient(var(--red) calc(var(--pct)*3.6deg), #1c2530 0deg);}
+  .ring .inner{width:33px; height:33px; border-radius:50%; background:#0a0e13; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--text);}
+  .fsgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:10px 0; text-align:left;}
+  .fsgrid div{background:#0d1219; border-radius:6px; padding:5px 6px;}
+  .fsgrid span{display:block; font-size:8.5px; color:var(--muted); text-transform:uppercase; margin-bottom:2px;}
+  .fsgrid b, .fsgrid .val{font-size:11.5px; font-weight:700;}
+  .reason-banner{font-size:10.5px; color:var(--muted); background:#0d1219; border-radius:6px; padding:6px 8px; margin-bottom:8px;}
+  .rangebar{height:4px; border-radius:3px; position:relative; margin:6px 0 2px;}
+  .rangebar.long{background:linear-gradient(90deg,var(--green),#0d2f24);}
+  .rangebar.short{background:linear-gradient(90deg,#331420,var(--red));}
+  .rangebar-dot{position:absolute; top:-3px; width:10px; height:10px; border-radius:50%; background:var(--text); border:2px solid var(--bg);}
+  .rangebar-label{display:flex; justify-content:space-between; font-size:9.5px; color:var(--muted); margin-bottom:8px;}
+  .trade-btn{display:block; text-align:center; background:var(--green); color:#04231a; font-weight:700; font-size:11px; padding:8px; border-radius:6px; text-decoration:none;}
+  .trade-btn.ghost{background:none; border:1px solid var(--border); color:var(--muted); flex:1;}
+  .btn-row{display:flex; gap:6px;}
+  .btn-row .trade-btn{flex:1;}
+</style>
+</head>
+<body>
 
+<div class="topbar">
+  <div class="logo">PONSI<span>_TERMINAL</span></div>
+  <div class="live">LIVE</div>
+</div>
+
+<div class="chainrow">
+  <div class="chip active" data-chain="robinhood">Robinhood Chain</div>
+  <div class="chip" data-chain="solana">Solana</div>
+</div>
+
+<!-- OVERVIEW -->
+<div class="view active" id="view-overview">
+  <div class="panel">
+    <h3>Liquidity Flow <span class="muted">top pools by TVL, bias = buy/sell tx skew</span></h3>
+    <table><thead><tr><th>Token</th><th>TVL</th><th>Vol 24h</th><th>Flow</th></tr></thead>
+      <tbody id="tbl-pools"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody></table>
+  </div>
+  <div class="panel">
+    <h3>Best Movers 24h</h3>
+    <table><thead><tr><th>Token</th><th>24h</th><th>Vol</th></tr></thead>
+      <tbody id="tbl-calls"><tr><td colspan="3" class="empty">Loading...</td></tr></tbody></table>
+  </div>
+  <div class="panel">
+    <h3>Large Txn Alerts <span class="muted">swap besar asli on-chain, 24h</span></h3>
+    <table><thead><tr><th>Token</th><th>Wallet</th><th>Vol</th><th>Side</th></tr></thead>
+      <tbody id="tbl-large"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody></table>
+    <div class="note" id="large-note"></div>
+  </div>
+</div>
+
+<!-- ANOMALIES -->
+<div class="view" id="view-anomalies">
+  <div class="subtabs">
+    <div class="subtab active" data-sub="anomalies" data-group="anom">Anomalies</div>
+    <div class="subtab" data-sub="topgl" data-group="anom">Top G/L</div>
+  </div>
+  <div class="panel sub-anom-anomalies">
+    <h3>Anomaly Detector <span class="muted">pure logic threshold, bukan AI</span></h3>
+    <div id="list-anomalies"><div class="empty">Loading...</div></div>
+  </div>
+  <div class="panel sub-anom-topgl" style="display:none">
+    <h3>Gainers 1H</h3>
+    <table><thead><tr><th>Token</th><th>Price</th><th>1H</th></tr></thead><tbody id="tbl-gainers"></tbody></table>
+  </div>
+  <div class="panel sub-anom-topgl" style="display:none">
+    <h3>Losers 1H</h3>
+    <table><thead><tr><th>Token</th><th>Price</th><th>1H</th></tr></thead><tbody id="tbl-losers"></tbody></table>
+  </div>
+  <div class="panel sub-anom-topgl" style="display:none">
+    <h3>Top Volume</h3>
+    <table><thead><tr><th>Token</th><th>Price</th><th>Vol24h</th></tr></thead><tbody id="tbl-topvol"></tbody></table>
+  </div>
+</div>
+
+<!-- SIGNALS -->
+<div class="view" id="view-signals">
+  <div class="panel">
+    <h3>KOL / Smart Money Confluence <span class="muted">GMGN OpenAPI, chain Solana — data asli</span></h3>
+    <div id="list-kol"><div class="empty">Loading...</div></div>
+  </div>
+  <div class="subtabs">
+    <div class="subtab active" data-sub="enriched" data-group="sig">Enriched</div>
+    <div class="subtab" data-sub="degen" data-group="sig">Degen</div>
+    <div class="subtab" data-sub="newgems" data-group="sig">New Gems</div>
+  </div>
+  <div class="panel sub-sig-normal">
+    <h3>Accumulation Signals <span class="muted" id="sig-sub-label">liquidity sehat</span></h3>
+    <div id="list-signals"><div class="empty">Loading...</div></div>
+  </div>
+  <div class="panel sub-sig-newgems" style="display:none">
+    <h3>New Gems <span class="muted">token baru, mcap masih kecil, belum banyak di-FOMO</span></h3>
+    <div id="list-newgems"><div class="empty">Loading...</div></div>
+    <div class="note" id="newgems-note"></div>
+  </div>
+</div>
+
+<!-- LP -->
+<div class="view" id="view-lp">
+  <div class="panel">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0">Liquidity Pools <span class="muted">APR estimasi (asumsi fee 0.3%)</span></h3>
+      <button class="guide-btn" id="lp-guide-btn">Guide</button>
+    </div>
+    <div class="chainrow" style="margin-top:10px;">
+      <div class="chip active" data-sort="tvl">TVL</div>
+      <div class="chip" data-sort="volume24h">Vol</div>
+      <div class="chip" data-sort="aprEst">APR</div>
+      <div class="chip" data-sort="volTvlRatio">Vol/TVL</div>
+    </div>
+    <table><thead><tr><th>Pool</th><th>TVL</th><th>Vol24h</th><th>APR*</th></tr></thead>
+      <tbody id="tbl-lp"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody></table>
+    <div class="note">*Estimasi, bukan APR real dari kontrak pool.</div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="lp-guide-modal">
+  <div class="modal">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <b>LP Strategy Guide</b>
+      <span style="cursor:pointer; color:var(--muted)" id="lp-guide-close">✕</span>
+    </div>
+    <div class="guide-item"><b>Full Range (0 → ∞)</b><br>Cocok buat: pemula, passive income, hold overnight. IL: minim. Fee: sedang.</div>
+    <div class="guide-item"><b>Single-Side Stable</b><br>Cocok buat: risiko lebih rendah, farming fee konsisten. IL: minim (sisi stable aja). Deposit stablecoin/ETH doang.</div>
+    <div class="guide-item"><b>Tight Range</b><br>Cocok buat: conviction tinggi, mantau aktif. IL: medium. Fee: maksimal. Set range ±5-15% dari harga sekarang.</div>
+    <div class="guide-item"><b>Bid-Ask</b><br>Cocok buat: LP advance, scalping fee. IL: tinggi. Dua posisi: bid di bawah, ask di atas, rebalance terus.</div>
+    <div class="guide-item"><b>Key Rules</b><br>1. MC &gt; $500K, Vol24h &gt; $1M &nbsp; 2. Utility &gt; pure meme &nbsp; 3. Max 3 posisi terbuka &nbsp; 4. Siang: full range cap besar, malam: close kalau udah +10-20% &nbsp; 5. Compound konsisten &nbsp; 6. Kalau fee &gt; IL, lanjut aja.</div>
+  </div>
+</div>
+
+<!-- WALLET -->
+<div class="view" id="view-wallet">
+  <div class="panel">
+    <h3>Wallet / Whale Monitor</h3>
+    <table><thead><tr><th>Token</th><th>Wallet</th><th>Vol</th><th>Side</th></tr></thead>
+      <tbody id="tbl-wallet"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody></table>
+    <div class="note" id="wallet-note"></div>
+  </div>
+</div>
+
+<!-- AI SIGNAL (Forex/Gold/Crypto) -->
+<div class="view" id="view-fxsignal">
+  <div class="panel">
+    <h3>AI Signal — Forex/Gold/Crypto <span class="muted">semua gaya trading otomatis</span></h3>
+    <div class="fxrow">
+      <select id="fx-market">
+        <option value="forex">Forex/Gold (TwelveData)</option>
+        <option value="crypto">Crypto (Binance/Bybit/OKX)</option>
+      </select>
+      <select id="fx-symbol"></select>
+    </div>
+    <button class="go" id="fx-go">Generate Semua Timeframe</button>
+  </div>
+  <div id="fx-results"></div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" data-view="overview"><span class="ico">▦</span>Overview</div>
+  <div class="tab" data-view="anomalies"><span class="ico">⚠</span>Anomalies</div>
+  <div class="tab" data-view="signals"><span class="ico">🔔</span>Signals</div>
+  <div class="tab" data-view="lp"><span class="ico">💧</span>LP</div>
+  <div class="tab" data-view="wallet"><span class="ico">👛</span>Wallet</div>
+  <div class="tab" data-view="fxsignal"><span class="ico">⚡</span>AI Signal</div>
+</div>
+
+<script>
+const FN = '/api';
+let currentChain = 'robinhood';
+let currentView = 'overview';
+
+function fmtUsd(n){
+  n = Number(n)||0;
+  if (Math.abs(n) >= 1e6) return '$'+(n/1e6).toFixed(2)+'M';
+  if (Math.abs(n) >= 1e3) return '$'+(n/1e3).toFixed(1)+'K';
+  return '$'+n.toFixed(2);
+}
+function fmtPct(n){ n=Number(n)||0; return (n>=0?'+':'')+n.toFixed(2)+'%'; }
+function pctClass(n){ return n>=0 ? 'up' : 'down'; }
+function tokCell(symbol, icon){
+  const letter = (symbol||'?').charAt(0).toUpperCase();
+  const img = icon ? `<img src="${icon}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'fallback',textContent:'${letter}'}))">` : `<div class="fallback">${letter}</div>`;
+  return `<div class="tok">${img}<span>$${symbol}</span></div>`;
+}
+function tokImg(icon, symbol){
+  const letter = (symbol||'?').charAt(0).toUpperCase();
+  return icon ? `<img src="${icon}" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'fallback',textContent:'${letter}'}))">` : `<div class="fallback">${letter}</div>`;
+}
+function tokName(symbol){ return `$${symbol}`; }
+const GMGN_CHAIN = { solana: 'sol', robinhood: 'robinhood' }; // slug GMGN — 'robinhood' belum terverifikasi 100%, cek manual kalau link 404
+function gmgnUrl(chain, address){
+  const slug = GMGN_CHAIN[chain];
+  return (slug && address) ? `https://gmgn.ai/${slug}/token/${address}` : null;
+}
+function actionRow(address, chain, dexUrl){
+  const gUrl = gmgnUrl(chain, address);
+  const addrShort = address ? `${address.slice(0,4)}...${address.slice(-4)}` : null;
+  return `<div class="btn-row" style="margin-top:8px">
+    ${addrShort ? `<button class="trade-btn ghost" onclick="copyAddr('${address}',this)">📋 ${addrShort}</button>` : ''}
+    ${gUrl ? `<a class="trade-btn ghost" href="${gUrl}" target="_blank" rel="noopener">GMGN ↗</a>` : ''}
+    <a class="trade-btn" href="${dexUrl}" target="_blank" rel="noopener">Dexscreener ↗</a>
+  </div>`;
+}
+function copyAddr(addr, btn){
+  navigator.clipboard.writeText(addr).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ Copied';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  }).catch(() => {});
+}
+
+async function loadOverview(){
+  const res = await fetch(`${FN}/overview?chain=${currentChain}`);
+  const data = await res.json();
+  document.getElementById('tbl-pools').innerHTML = (data.topPools||[]).map(p => `
+    <tr><td>${tokCell(p.symbol,p.icon)}</td><td>${fmtUsd(p.liquidityUsd)}</td><td>${fmtUsd(p.volume24h)}</td>
+    <td class="${pctClass(p.flowBiasPct)}">${p.flowBiasPct>0?'+':''}${p.flowBiasPct}%</td></tr>`).join('') || '<tr><td colspan="4" class="empty">Kosong</td></tr>';
+
+  document.getElementById('tbl-calls').innerHTML = (data.bestCalls||[]).map(p => `
+    <tr><td>${tokCell(p.symbol,p.icon)}</td><td class="${pctClass(p.priceChange24h)}">${fmtPct(p.priceChange24h)}</td><td>${fmtUsd(p.volume24h)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">Kosong</td></tr>';
+
+  document.getElementById('tbl-large').innerHTML = (data.largeTxnAlerts||[]).map(p => `
+    <tr><td>${tokCell(p.symbol,p.icon)}</td><td>${p.wallet}</td><td>${fmtUsd(p.volumeUsd)}</td><td><span class="badge ${p.side.toLowerCase()}">${p.side}</span></td></tr>`).join('') || '<tr><td colspan="4" class="empty">Belum ada swap besar / data belum tersedia</td></tr>';
+  document.getElementById('large-note').textContent = data.largeTxnNote || '';
+}
+
+async function loadAnomalies(){
+  const res = await fetch(`${FN}/anomalies?chain=${currentChain}`);
+  const data = await res.json();
+  lastAnomaliesData = data;
+  renderAnomaliesSub();
+}
+
+function renderAnomaliesSub(){
+  const data = lastAnomaliesData;
+  if (!data) return;
+  const el = document.getElementById('list-anomalies');
+  el.innerHTML = (data.anomalies||[]).map(a => {
+    const dir = a.direction.toLowerCase();
+    const ringClass = dir === 'short' ? 'red' : 'green';
+    return `
+    <div class="fscard ${dir}">
+      <div class="fscard-top">
+        <div class="tok lg">${tokImg(a.icon, a.symbol)}<div><div class="fscard-name">${tokName(a.symbol)} <span class="badge ${dir}">${a.direction}</span></div></div></div>
+        <div><div class="ring ${ringClass}" style="--pct:${a.score}"><div class="inner">${a.score}</div></div><div class="fscard-price">$${a.priceUsd}</div></div>
+      </div>
+      <div class="fsgrid">
+        <div><span>1H</span><span class="val ${pctClass(a.priceChange1h)}">${fmtPct(a.priceChange1h)}</span></div>
+        <div><span>MC</span><span class="val">${fmtUsd(a.marketCap)}</span></div>
+        <div><span>Vol 1H</span><span class="val">${fmtUsd(a.volume1h)}</span></div>
+        <div><span>Liq</span><span class="val">${fmtUsd(a.liquidityUsd)}</span></div>
+      </div>
+      <div class="reason-banner">${a.reasons.join(' • ')}</div>
+      <div class="rangebar ${dir === 'short' ? 'short' : 'long'}"><div class="rangebar-dot" style="left:${dir==='short'?'85%':'5%'}"></div></div>
+      <div class="rangebar-label"><span>Entry ${a.entry.toPrecision(4)}</span><span>Target ${a.target[0].toPrecision(4)}–${a.target[1].toPrecision(4)}</span></div>
+      ${actionRow(a.address, a.chain, a.url)}
+    </div>`;
+  }).join('') || '<div class="empty">Nggak ada anomali signifikan saat ini</div>';
+
+  const rowsFor = (list) => (list||[]).map(p => `
+    <tr><td>${tokCell(p.symbol,p.icon)}</td><td>$${p.priceUsd}</td><td class="${pctClass(p.priceChange1h)}">${fmtPct(p.priceChange1h)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">Kosong</td></tr>';
+  document.getElementById('tbl-gainers').innerHTML = rowsFor(data.topGainers);
+  document.getElementById('tbl-losers').innerHTML = rowsFor(data.topLosers);
+  document.getElementById('tbl-topvol').innerHTML = (data.topVolume||[]).map(p => `
+    <tr><td>${tokCell(p.symbol,p.icon)}</td><td>$${p.priceUsd}</td><td>${fmtUsd(p.volume24h)}</td></tr>`).join('') || '<tr><td colspan="3" class="empty">Kosong</td></tr>';
+}
+let lastAnomaliesData = null;
+
+async function loadSignals(){
+  const [res, kolRes] = await Promise.all([
+    fetch(`${FN}/signals?chain=${currentChain}`),
+    fetch(`${FN}/kol`),
+  ]);
+  const data = await res.json();
+  lastSignalsData = data;
+  renderSignalsSub();
+  renderKol(await kolRes.json());
+  loadNewGems();
+}
+
+let lastNewGemsData = null;
+let newGemsLoadedForChain = null;
+async function loadNewGems(){
+  if (newGemsLoadedForChain === currentChain) { renderNewGems(); return; }
+  document.getElementById('list-newgems').innerHTML = '<div class="empty">Loading...</div>';
+  const res = await fetch(`${FN}/newgems?chain=${currentChain}`);
+  const data = await res.json();
+  lastNewGemsData = data;
+  newGemsLoadedForChain = currentChain;
+  renderNewGems();
+}
+function renderNewGems(){
+  const data = lastNewGemsData;
+  if (!data) return;
+  const el = document.getElementById('list-newgems');
+  el.innerHTML = (data.gems||[]).map(g => {
+    const ringClass = g.score >= 65 ? 'green' : 'red';
+    const ageLabel = g.ageHours < 1 ? `${Math.round(g.ageHours*60)}m` : `${g.ageHours.toFixed(1)}j`;
+    return `
+    <div class="fscard acc">
+      <div class="fscard-top">
+        <div class="tok lg">${tokImg(g.icon, g.symbol)}<div><div class="fscard-name">${tokName(g.symbol)} <span class="badge buy">${ageLabel}</span></div><div class="fscard-sub">MCap ${fmtUsd(g.marketCap)} • Liq ${fmtUsd(g.liquidityUsd)}</div></div></div>
+        <div><div class="ring ${ringClass}" style="--pct:${g.score}"><div class="inner">${g.score}</div></div><div class="fscard-price">$${g.priceUsd}</div></div>
+      </div>
+      <div class="fsgrid">
+        <div><span>1H</span><span class="val ${pctClass(g.priceChange1h)}">${fmtPct(g.priceChange1h)}</span></div>
+        <div><span>24H</span><span class="val ${pctClass(g.priceChange24h)}">${fmtPct(g.priceChange24h)}</span></div>
+        <div><span>Vol 1H</span><span class="val">${fmtUsd(g.volume1h)}</span></div>
+        <div><span>Vol 24H</span><span class="val">${fmtUsd(g.volume24h)}</span></div>
+      </div>
+      ${g.reasons.length ? `<div class="reason-banner">${g.reasons.join(' • ')}</div>` : ''}
+      ${g.redFlags.length ? `<div class="reason-banner" style="color:var(--red)">⚠ ${g.redFlags.join(' • ')}</div>` : ''}
+      ${actionRow(g.address, g.chain, g.url)}
+    </div>`;
+  }).join('') || '<div class="empty">Nggak ada token baru yang lolos filter saat ini</div>';
+  document.getElementById('newgems-note').textContent = data.note || '';
+}
+function renderKol(data){
+  const el = document.getElementById('list-kol');
+  if (!data.tokens || !data.tokens.length) {
+    el.innerHTML = `<div class="empty">${data.note || 'Belum ada konfluensi KOL/smart money saat ini'}</div>`;
+    return;
+  }
+  el.innerHTML = data.tokens.map(t => `
+    <div class="fscard acc">
+      <div class="fscard-top">
+        <div class="tok lg">${tokImg(t.icon,t.symbol)}<div><div class="fscard-name">${tokName(t.symbol)}</div><div class="fscard-sub">${t.kolCount} KOL • ${t.smartMoneyCount} Smart Money</div></div></div>
+        <div class="fscard-price">${fmtUsd(t.buyVolumeUsd)}<br><span class="muted" style="font-size:9px">buy vol</span></div>
+      </div>
+      ${actionRow(t.address, 'solana', t.url)}
+    </div>`).join('');
+}
+let lastSignalsData = null;
+let signalsSub = 'enriched';
+
+function renderSignalsSub(){
+  const data = lastSignalsData;
+  if (!data) return;
+  const filtered = (data.signals||[]).filter(s => s.category === signalsSub);
+  document.getElementById('sig-sub-label').textContent = signalsSub === 'enriched' ? 'liquidity sehat, mcap jelas' : 'liquidity tipis, risiko lebih tinggi';
+  const el = document.getElementById('list-signals');
+  el.innerHTML = filtered.map(s => `
+    <div class="fscard acc">
+      <div class="fscard-top">
+        <div class="tok lg">${tokImg(s.icon,s.symbol)}<div><div class="fscard-name">${tokName(s.symbol)}</div><div class="fscard-sub">Accumulation signal</div></div></div>
+        <div class="ring green" style="--pct:${s.score}"><div class="inner">${s.score}</div></div>
+      </div>
+      <div class="fsgrid">
+        <div><span>MC</span><span class="val">${fmtUsd(s.marketCap)}</span></div>
+        <div><span>1H</span><span class="val ${pctClass(s.priceChange1h)}">${fmtPct(s.priceChange1h)}</span></div>
+        <div><span>Vol 24H</span><span class="val">${fmtUsd(s.volume24h)}</span></div>
+        <div><span>Liq</span><span class="val">${fmtUsd(s.liquidityUsd)}</span></div>
+      </div>
+      <div class="reason-banner">Buy ratio 1H: ${s.buyRatio1h}% • 24H: ${s.buyRatio24h}%</div>
+      ${actionRow(s.address, s.chain, s.url)}
+    </div>`).join('') || '<div class="empty">Belum ada sinyal akumulasi di kategori ini</div>';
+}
+
+async function loadLP(){
+  const res = await fetch(`${FN}/lp?chain=${currentChain}`);
+  const data = await res.json();
+  lastLPData = data.pools || [];
+  renderLP();
+}
+let lastLPData = [];
+let lpSort = 'tvl';
+function renderLP(){
+  const sorted = [...lastLPData].sort((a,b) => (b[lpSort]||0) - (a[lpSort]||0));
+  document.getElementById('tbl-lp').innerHTML = sorted.map(p => `
+    <tr><td><div class="tok">${tokImg(p.icon,p.symbol)}<span>${tokName(p.symbol)}/${p.quote}</span></div></td><td>${fmtUsd(p.tvl)}</td><td>${fmtUsd(p.volume24h)}</td><td class="up">${p.aprEst}%</td></tr>`).join('') || '<tr><td colspan="4" class="empty">Kosong</td></tr>';
+}
+
+async function loadWallet(){
+  const res = await fetch(`${FN}/wallets?chain=${currentChain}`);
+  const data = await res.json();
+  document.getElementById('tbl-wallet').innerHTML = (data.wallets||[]).map(w => `
+    <tr><td>${tokCell(w.symbol,w.icon)}</td><td>${w.wallet}</td><td>${fmtUsd(w.volumeUsd)}</td><td><span class="badge ${w.side.toLowerCase()}">${w.side}</span></td></tr>`).join('') || '<tr><td colspan="4" class="empty">Kosong</td></tr>';
+  document.getElementById('wallet-note').textContent = data.note || '';
+}
+
+const LOADERS = { overview: loadOverview, anomalies: loadAnomalies, signals: loadSignals, lp: loadLP, wallet: loadWallet, fxsignal: () => loadFxPairs() };
+
+function switchView(v){
+  currentView = v;
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.dataset.view === v));
+  LOADERS[v]();
+}
+
+document.querySelectorAll('.tab').forEach(el => el.addEventListener('click', () => switchView(el.dataset.view)));
+document.querySelectorAll('.chainrow .chip[data-chain]').forEach(el => el.addEventListener('click', () => {
+  document.querySelectorAll('.chainrow .chip[data-chain]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  currentChain = el.dataset.chain;
+  LOADERS[currentView]();
+}));
+
+// subtabs: Anomalies <-> Top G/L, Signals: Enriched <-> Degen
+document.querySelectorAll('.subtab[data-group="anom"]').forEach(el => el.addEventListener('click', () => {
+  document.querySelectorAll('.subtab[data-group="anom"]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  const isTopGl = el.dataset.sub === 'topgl';
+  document.querySelectorAll('.sub-anom-anomalies').forEach(p => p.style.display = isTopGl ? 'none' : '');
+  document.querySelectorAll('.sub-anom-topgl').forEach(p => p.style.display = isTopGl ? '' : 'none');
+}));
+document.querySelectorAll('.subtab[data-group="sig"]').forEach(el => el.addEventListener('click', () => {
+  document.querySelectorAll('.subtab[data-group="sig"]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  const sub = el.dataset.sub;
+  const isNewGems = sub === 'newgems';
+  document.querySelectorAll('.sub-sig-normal').forEach(p => p.style.display = isNewGems ? 'none' : '');
+  document.querySelectorAll('.sub-sig-newgems').forEach(p => p.style.display = isNewGems ? '' : 'none');
+  if (isNewGems) { loadNewGems(); return; }
+  signalsSub = sub;
+  renderSignalsSub();
+}));
+
+// LP sort chips + guide modal
+document.querySelectorAll('#view-lp .chip[data-sort]').forEach(el => el.addEventListener('click', () => {
+  document.querySelectorAll('#view-lp .chip[data-sort]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  lpSort = el.dataset.sort;
+  renderLP();
+}));
+document.getElementById('lp-guide-btn').addEventListener('click', () => document.getElementById('lp-guide-modal').classList.add('active'));
+document.getElementById('lp-guide-close').addEventListener('click', () => document.getElementById('lp-guide-modal').classList.remove('active'));
+
+// ===== AI SIGNAL (Forex/Gold/Crypto) =====
+let fxPairsLoaded = false;
+async function loadFxPairs(){
+  if (fxPairsLoaded) return;
+  const res = await fetch(`${FN}/fx-pairs`);
+  const data = await res.json();
+  fxPairsLoaded = true;
+  updateFxSymbolOptions(data);
+  document.getElementById('fx-market').addEventListener('change', () => updateFxSymbolOptions(data));
+}
+function updateFxSymbolOptions(data){
+  const market = document.getElementById('fx-market').value;
+  const list = market === 'crypto' ? data.crypto : data.forex_gold;
+  document.getElementById('fx-symbol').innerHTML = list.map(s => `<option value="${s}">${s}</option>`).join('');
+}
+
+const STYLE_LABEL = { m1:'M1', m5:'M5', m30:'M30', scalping:'Scalping', daytrade:'Daytrade', swing:'Swing' };
+document.getElementById('fx-go').addEventListener('click', async () => {
+  const btn = document.getElementById('fx-go');
+  const market = document.getElementById('fx-market').value;
+  const symbol = document.getElementById('fx-symbol').value;
+  const resultsEl = document.getElementById('fx-results');
+  btn.disabled = true; btn.textContent = 'Menganalisis semua timeframe...';
+  resultsEl.innerHTML = '<div class="empty">Mengambil data & menjalankan AI di 6 gaya trading paralel...</div>';
+  try {
+    const res = await fetch(`${FN}/fx-signal-all?symbol=${encodeURIComponent(symbol)}&market=${market}`);
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { throw new Error('Respons bukan JSON: ' + text.slice(0,200)); }
+    if (!res.ok) throw new Error(data.error || 'Gagal generate sinyal');
+    renderFxResults(symbol, data.sinyal);
+  } catch (e) {
+    resultsEl.innerHTML = `<div class="panel" style="color:var(--red)">${e.message}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generate Semua Timeframe';
+  }
+});
+
+function renderFxResults(symbol, sinyalByStyle){
+  const order = ['m1','m5','m30','scalping','daytrade','swing'];
+  const el = document.getElementById('fx-results');
+  el.innerHTML = order.filter(s => sinyalByStyle[s]).map(style => {
+    const s = sinyalByStyle[style];
+    const biasClass = s.bias === 'BUY' ? 'up' : s.bias === 'SELL' ? 'down' : '';
+    return `
+    <div class="fxcard">
+      <div class="style">${STYLE_LABEL[style]}</div>
+      <div class="bias ${biasClass}">${s.bias} <span class="muted" style="font-size:11px">${s.confidence}%</span></div>
+      <div class="fxgrid">
+        <div><span>Entry</span>${s.entry ?? '-'}</div>
+        <div><span>SL</span>${s.stop_loss ?? '-'}</div>
+        <div><span>TP1</span>${s.take_profit_1 ?? '-'}</div>
+        <div><span>TP2</span>${s.take_profit_2 ?? '-'}</div>
+      </div>
+      <div class="fxnarr">${s.narrative || ''}</div>
+    </div>`;
+  }).join('') || '<div class="empty">Nggak ada hasil</div>';
+}
+
+loadOverview();
+setInterval(() => { if (currentView !== 'fxsignal') LOADERS[currentView](); }, 30000); // auto-refresh 30s, AI Signal manual trigger aja
+</script>
+</body>
+</html>
