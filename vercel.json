@@ -1,7 +1,6 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/public/terminal.html" },
-    { "source": "/terminal.html", "destination": "/public/terminal.html" }
+    { "source": "/", "destination": "/terminal.html" }
   ],
   "functions": {
     "api/fx-signal-all.js": { "maxDuration": 30 },
